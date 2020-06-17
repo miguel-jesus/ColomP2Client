@@ -1,18 +1,31 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class Login : MonoBehaviour
 {
-    public InputField emailInputField;
-    public InputField passwordInputField;
-    public Button loginButton;
+    public TMP_InputField emailInputField;
+    public TMP_InputField passwordInputField;
+    Player player;
 
-    private void GetToken()
+    private void Start()
     {
-        UnityWebRequest httpClient = new UnityWebRequest("Token", "POST");
+        player = FindObjectOfType<Player>();
+    }
+    public void OnLoginButtonClick()
+    {
+        StartCoroutine(TryLogin());
+    } 
+
+    private IEnumerator GetToken()
+    {
+        UnityWebRequest httpClient = new UnityWebRequest(player.HttpServerAdrees + "Token", "POST");
 
         // application/x-www-form-urlencoded
         WWWForm dataToSend = new WWWForm();
@@ -24,8 +37,8 @@ public class Login : MonoBehaviour
         httpClient.downloadHandler = new DownloadHandlerBuffer();
 
         httpClient.SetRequestHeader("Accept", "application/json");
-
-        httpClient.SendWebRequest();
+        httpClient.certificateHandler = new ByPassCertificate();
+        yield return httpClient.SendWebRequest();
 
         if (httpClient.isNetworkError || httpClient.isHttpError)
         {
@@ -35,22 +48,23 @@ public class Login : MonoBehaviour
         {
             string jsonResponse = httpClient.downloadHandler.text;
             AuthorizationToken authToken = JsonUtility.FromJson<AuthorizationToken>(jsonResponse);
-            
+            player.Token = authToken.access_token;
         }
         httpClient.Dispose();
+
     }
 
-    private void TryLogin()
+    private IEnumerator GetPlayerInfo()
     {
+        UnityWebRequest httpClient = new UnityWebRequest(player.HttpServerAdrees + "api/Player/GetPlayerInfo", "GET");
 
-        UnityWebRequest httpClient = new UnityWebRequest("api/Account/UserId", "GET");
-
-        httpClient.SetRequestHeader("Authorization", "bearer ");
+        httpClient.SetRequestHeader("Authorization", "bearer " + player.Token);
         httpClient.SetRequestHeader("Accept", "application/json");
 
         httpClient.downloadHandler = new DownloadHandlerBuffer();
+        httpClient.certificateHandler = new ByPassCertificate();
 
-        httpClient.SendWebRequest();
+        yield return httpClient.SendWebRequest();
 
         if (httpClient.isNetworkError || httpClient.isHttpError)
         {
@@ -58,11 +72,20 @@ public class Login : MonoBehaviour
         }
         else
         {
-            // TODO
-
+            PlayerModel playerModel = JsonUtility.FromJson<PlayerModel>(httpClient.downloadHandler.text);
+            player.Id = playerModel.Id;
+            player.Name = playerModel.Name;
+            player.DateBirth = DateTime.Parse(playerModel.DateBirth);
         }
 
         httpClient.Dispose();
+    }
+
+    private IEnumerator  TryLogin()
+    {
+        yield return GetToken();
+        yield return GetPlayerInfo();
+        SceneManager.LoadScene(2);
     }
 
 

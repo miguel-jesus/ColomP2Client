@@ -1,8 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AspNetUserRegister : MonoBehaviour
+[Serializable]
+public class AspNetUserRegister
 {
 
     public string Email;
