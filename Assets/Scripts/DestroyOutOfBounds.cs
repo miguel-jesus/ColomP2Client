@@ -8,11 +8,14 @@ public class DestroyOutOfBounds : MonoBehaviour
     private float topBound = 30;
     private float lowerBound = -10;
     Player player;
+    GameManager gameManager;
+    int index = 0;
 
     // Start is called before the first frame update
     void Start()
     {
         player = FindObjectOfType<Player>();
+        gameManager = FindObjectOfType<GameManager>();
     }
 
     // Update is called once per frame
@@ -26,7 +29,16 @@ public class DestroyOutOfBounds : MonoBehaviour
         {
             Destroy(gameObject);
             Debug.Log("Game Over!");
+            if(index < 1)
+            {
+                StartCoroutine(insertGames());
+                index++;
+            }
 
         }
+    }
+    public IEnumerator insertGames()
+    {
+        yield return gameManager.insertGame();
     }
 }
